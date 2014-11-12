@@ -17,7 +17,7 @@ class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transacti
    * Constants.
    */
   const UUID = 'fa8b8693-4401-11e4-b353-0050569e00a2';
-  const NAME = 'GET SOQL Result';
+  const NAME = 'SalesforceSoapApi_Transaction_Get_SoqlResult';
   
   /**
    * @var AblePolecat_AccessControl_Agent_User Instance of singleton.

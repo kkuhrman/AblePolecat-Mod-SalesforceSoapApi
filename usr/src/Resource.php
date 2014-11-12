@@ -27,29 +27,7 @@ class SalesforceSoapApi_Resource
   /**
    * @var AblePolecat_AccessControl_Agent_User Instance of singleton.
    */
-  private static $Transaction;
-  
-  /********************************************************************************
-   * Implementation of AblePolecat_AccessControl_ArticleInterface.
-   ********************************************************************************/
-  
-  /**
-   * Return unique, system-wide identifier for agent.
-   *
-   * @return string Transaction identifier.
-   */
-  public static function getId() {
-    return self::UUID;
-  }
-  
-  /**
-   * Return common name for agent.
-   *
-   * @return string Transaction name.
-   */
-  public static function getName() {
-    return self::NAME;
-  }
+  private static $Resource;
   
   /********************************************************************************
    * Implementation of AblePolecat_CacheObjectInterface
@@ -86,6 +64,9 @@ class SalesforceSoapApi_Resource
   public function open(AblePolecat_AccessControl_AgentInterface $Agent, AblePolecat_AccessControl_Resource_LocaterInterface $Url = NULL) {
     //
     // @todo: 
+    // - SOQL is defined in sub-class initialization.
+    // - Execute SOQL here using given agent/locater
+    // - Process SOQL result in sub-class implementation of abstract method TBD.
     //
     return TRUE;
   }
