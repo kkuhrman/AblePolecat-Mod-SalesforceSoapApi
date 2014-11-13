@@ -12,7 +12,7 @@
 if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
   define('SALESFORCE_SOAP_API_MOD_SRC_PATH', __DIR__);
 }
-require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'QueryLanguage', 'Statement', 'Soql.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'Service', 'Client', 'Salesforce.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Resource.php')));
 
 interface SalesforceSoapApi_ResourceInterface extends AblePolecat_ResourceInterface {
@@ -33,6 +33,11 @@ abstract class SalesforceSoapApi_ResourceAbstract
    * @var SalesforceSoapApi_Soql_StatementInterface SOQL SELECT statement.
    */
   private $soql;
+  
+  /**
+   * @var Object Result of SOQL query.
+   */
+  private $soapResponse;
   
   /********************************************************************************
    * Implementation of AblePolecat_AccessControl_ResourceInterface.
@@ -67,11 +72,12 @@ abstract class SalesforceSoapApi_ResourceAbstract
     }
     
     //
-    // @todo: use Agent/Url to establish client.
+    // Establish connection to Salesforce.com SOAP client.
     //
-    // - Execute SOQL here using given agent/locater
-    // - Process SOQL result in sub-class implementation of abstract method TBD.
-    //
+    $SalesforceClient = SalesforceSoapApi_Client::wakeup($Agent);
+    $SalesforceClient->open($Agent, $Url);
+    $this->soapResponse = $SalesforceClient->query($this->soql);
+    AblePolecat_Debug::kill($this->soapResponse);
     return TRUE;
   }
   
@@ -90,5 +96,6 @@ abstract class SalesforceSoapApi_ResourceAbstract
     $this->validateRequestPath();
     $this->uri = AblePolecat_Host::getRequest()->getBaseUrl() . AblePolecat_Host::getRequest()->getRequestPath(TRUE);
     $this->soql = $this->interpretRequest();
+    $this->soapResponse = NULL;
   }
 }
