@@ -1,7 +1,7 @@
 <?php
 /**
  * @package   Salesforce.com SOAP API module for Able Polecat.
- * @file      Transaction/Get/SoqlResult.php
+ * @file      AblePolecat-Mod-SalesforceSoapApi/usr/src/Transaction/Get/SoqlResult.php
  * @brief     Able Polecat transaction processes SOAP request and returns resource.
  *
  * @author    Karl Kuhrman
@@ -9,6 +9,15 @@
  * @version   0.7.0
  */
 
+if (!defined('SALESFORCE_SOAP_API_MOD_PATH')) {
+  $SALESFORCE_SOAP_API_MOD_PATH = AblePolecat_Server_Paths::getFullPath('d69bd6b3-5ef1-11e4-8bc7-0050569e00a2');
+  define('SALESFORCE_SOAP_API_MOD_PATH', $SALESFORCE_SOAP_API_MOD_PATH);
+}
+if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
+  define('SALESFORCE_SOAP_API_MOD_SRC_PATH', dirname(dirname(__DIR__)));
+}
+require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'AccessControl', 'Resource', 'Locater', 'Wsdl.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'Resource.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Transaction', 'Get', 'Resource.php')));
 
 class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transaction_Get_Resource {
@@ -18,6 +27,8 @@ class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transacti
    */
   const UUID = 'fa8b8693-4401-11e4-b353-0050569e00a2';
   const NAME = 'SalesforceSoapApi_Transaction_Get_SoqlResult';
+  
+  const CONF_FILENAME_MOD = 'module.xml';
   
   /**
    * @var AblePolecat_AccessControl_Agent_User Instance of singleton.
@@ -89,21 +100,101 @@ class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transacti
    * @throw AblePolecat_Transaction_Exception If cannot be brought to a satisfactory state.
    */
   public function run() {
-    
+        
     //
     // Give parent first shot at resolving request.
     //
     $Resource = parent::run();
-    
-    if (!is_a($Resource, 'SalesforceSoapApi_Resource')) {
-      //
-      // @todo: unexpected resource type.
-      //
+    if (isset($Resource)) {
+      if (!is_a($Resource, 'SalesforceSoapApi_ResourceInterface')) {
+        //
+        // unexpected resource type.
+        //
+        $message = sprintf("%s must return object which implements SalesforceSoapApi_ResourceInterface or NULL. %s returned.",
+          __METHOD__,
+          AblePolecat_Data::getDataTypeName($Resource)
+        );
+        throw new AblePolecat_Resource_Exception($message);
+      }
+      else {
+        //
+        // Get client locater from configuration file.
+        //
+        $confPath = implode(DIRECTORY_SEPARATOR, 
+          array(
+            SALESFORCE_SOAP_API_MOD_PATH,
+            'etc',
+            'conf',
+            self::CONF_FILENAME_MOD
+          )
+        );
+        $Conf = new DOMDocument();
+        $Conf->load($confPath);
+        
+        //
+        // Check WSDL path.
+        //
+        $defaultWsdlPath = implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_PATH, 'etc', 'wsdl', 'enterprise.wsdl.xml'));
+        $wsdlPath = '';
+        $userName = '';
+        $NodeList = AblePolecat_Dom::getElementsByTagName($Conf, 'locater');
+        foreach($NodeList as $key => $Node) {
+          //
+          // Only one instance of core (server mode) database can be active.
+          // Otherwise, Able Polecat stops boot and throws exception.
+          // @see ./polecat/etc/conf/host.xml
+          // <database id="core" name="polecat" mode="server" use="1">
+          //   <dsn>mysql://user:pass@localhost/polecat</dsn>
+          // </database>
+          //
+          if (($Node->getAttribute('id') == 'Salesforce.com') &&
+              ($Node->getAttribute('name') == 'soapClient') &&  
+              ($Node->getAttribute('use'))) 
+          {
+            foreach($Node->childNodes as $key => $childNode) {
+              if($childNode->nodeName == 'fullPath') {
+                $wsdlPath = $childNode->nodeValue;
+                if (!file_exists($wsdlPath)) {
+                  //
+                  // User did not set WSDL path in configuration file, try default...
+                  //
+                  if (!file_exists($defaultWsdlPath)) {
+                    throw new AblePolecat_Resource_Exception(sprintf("Salesforce.com SOAP client WSDL path is not valid. Tried %s; %s",
+                      addslashes($wsdlPath),
+                      addslashes($defaultWsdlPath)
+                    ));
+                  }
+                  $wsdlPath = $defaultWsdlPath;
+                }
+              }
+              if ($childNode->nodeName == 'userName') {
+                $userName = $childNode->nodeValue;
+              }
+              if ($childNode->nodeName == 'passWord') {
+                $passWord = $childNode->nodeValue;
+              }
+              if ($childNode->nodeName == 'securityToken') {
+                $securityToken = $childNode->nodeValue;
+              }
+            }
+          }
+        }
+        
+        //
+        // Create locater from conf file
+        //
+        $Locater = SalesforceSoapApi_AccessControl_Resource_Locater_Wsdl::create($wsdlPath);
+        $Locater->setUsername($userName);
+        $Locater->setPassword($passWord);
+        $Locater->setSecurityToken($securityToken);
+        
+        //
+        // Use transaction agent and locater to open resource
+        //
+        $Agent = $this->getAgent();
+        $Resource->open($Agent, $Locater);
+      }
     }
-    
-    //
-    // @todo: static method for getting full path, checking syntax, including file...
-    //
     return $Resource;
   }
   
