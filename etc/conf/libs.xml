@@ -1,7 +1,0 @@
-<?xml version='1.0' standalone='yes'?>
-<classLibraries>
-  <classLibrary id="Force.com-Toolkit-for-PHP" name="Force.com Toolkit for PHP" type="LIB" use="1">
-    <repositoryUrl>https://github.com/developerforce/Force.com-Toolkit-for-PHP</repositoryUrl>
-    <fullPath>/path/to/usr/libs/Force.com-Toolkit-for-PHP</fullPath>
-  </classLibrary>
-</classLibraries>
