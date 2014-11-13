@@ -1,7 +1,7 @@
 <?php
 /**
  * @package   Salesforce.com SOAP API module for Able Polecat.
- * @file      Resource.php
+ * @file      AblePolecat-Mod-SalesforceSoapApi/usr/src/Resource.php
  * @brief     Encapsulates result of request to Salesforce.com SOAP API.
  *
  * @author    Karl Kuhrman
@@ -9,44 +9,30 @@
  * @version   0.7.0
  */
 
+if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
+  define('SALESFORCE_SOAP_API_MOD_SRC_PATH', __DIR__);
+}
+require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'QueryLanguage', 'Statement', 'Soql.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Resource.php')));
 
 interface SalesforceSoapApi_ResourceInterface extends AblePolecat_ResourceInterface {
+  
+  /**
+   * Interpret request path/query string as SOQL statement.
+   *
+   * @return SalesforceSoapApi_Soql_StatementInterface SOQL SELECT statement or NULL.
+   */
+  public function interpretRequest();
 }
 
-class SalesforceSoapApi_Resource 
+abstract class SalesforceSoapApi_ResourceAbstract
   extends AblePolecat_ResourceAbstract
   implements SalesforceSoapApi_ResourceInterface {
   
   /**
-   * Constants.
+   * @var SalesforceSoapApi_Soql_StatementInterface SOQL SELECT statement.
    */
-  const UUID = '8eb53998-5f6f-11e4-8bc7-0050569e00a2';
-  const NAME = 'Generic Sobject resource';
-  
-  /**
-   * @var AblePolecat_AccessControl_Agent_User Instance of singleton.
-   */
-  private static $Resource;
-  
-  /********************************************************************************
-   * Implementation of AblePolecat_CacheObjectInterface
-   ********************************************************************************/
-  
-  /**
-   * Create a new instance of object or restore cached object to previous state.
-   *
-   * @param AblePolecat_AccessControl_SubjectInterface $Subject
-   *
-   * @return Instance of SalesforceSoapApi_Resource
-   */
-  public static function wakeup(AblePolecat_AccessControl_SubjectInterface $Subject = NULL) {
-    
-    if (!isset(self::$Resource)) {
-      self::$Resource = new SalesforceSoapApi_Resource($Subject);
-    }
-    return self::$Resource;
-  }
+  private $soql;
   
   /********************************************************************************
    * Implementation of AblePolecat_AccessControl_ResourceInterface.
@@ -60,11 +46,29 @@ class SalesforceSoapApi_Resource
    * @param string $name Optional common name for new resources.
    *
    * @return bool TRUE if access to resource is granted, otherwise FALSE.
+   * @throw AblePolecat_Resource_Exception if resource cannot be opened.
    */
   public function open(AblePolecat_AccessControl_AgentInterface $Agent, AblePolecat_AccessControl_Resource_LocaterInterface $Url = NULL) {
+    
     //
-    // @todo: 
-    // - SOQL is defined in sub-class initialization.
+    // Validate SOQL.
+    //
+    if (!isset($this->soql)) {
+      throw new AblePolecat_Resource_Exception(sprintf("%s class did not produce a valid SOQL statement for resource given by %s",
+        AblePolecat_Data::getDataTypeName($this),
+        $this->resourceName
+      ));
+    }
+    else if (!is_a($this->soql, 'SalesforceSoapApi_Soql_StatementInterface')) {
+      throw new AblePolecat_Resource_Exception(sprintf("SalesforceSoapApi_ResourceInterface::interpretRequest() must return object which implements SalesforceSoapApi_Soql_StatementInterface or NULL. %s::interpretRequest() returned %s.",
+        AblePolecat_Data::getDataTypeName($this),
+        AblePolecat_Data::getDataTypeName($this->soql)
+      ));
+    }
+    
+    //
+    // @todo: use Agent/Url to establish client.
+    //
     // - Execute SOQL here using given agent/locater
     // - Process SOQL result in sub-class implementation of abstract method TBD.
     //
@@ -76,17 +80,15 @@ class SalesforceSoapApi_Resource
    ********************************************************************************/
   
   /**
-   * Validates request URI path to ensure resource request can be fulfilled.
-   *
-   * @throw AblePolecat_Resource_Exception If request URI path is not validated.
-   */
-  protected function validateRequestPath() {
-  }
-  
-  /**
    * Extends __construct().
    */
   protected function initialize() {
-    parent::initialize();
+    //
+    // Override AblePolecat_ResourceAbstract::initialize();
+    // (Leave $this->resourceId and $this->resourceName undefined).
+    //
+    $this->validateRequestPath();
+    $this->uri = AblePolecat_Host::getRequest()->getBaseUrl() . AblePolecat_Host::getRequest()->getRequestPath(TRUE);
+    $this->soql = $this->interpretRequest();
   }
 }
