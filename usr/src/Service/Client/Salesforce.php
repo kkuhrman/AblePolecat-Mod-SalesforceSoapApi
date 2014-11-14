@@ -26,10 +26,6 @@ class SalesforceSoapApi_Client extends AblePolecat_Service_ClientAbstract {
    * @var SforceEnterpriseClient.
    */
   private $Client;
-  
-  /********************************************************************************
-   * Implementation of AblePolecat_AccessControl_ArticleInterface.
-   ********************************************************************************/
    
   /********************************************************************************
    * Implementation of AblePolecat_AccessControl_ResourceInterface.

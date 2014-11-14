@@ -23,6 +23,11 @@ interface SalesforceSoapApi_ResourceInterface extends AblePolecat_ResourceInterf
    * @return SalesforceSoapApi_Soql_StatementInterface SOQL SELECT statement or NULL.
    */
   public function interpretRequest();
+  
+  /**
+   * Populate class members with data from SOAP response.
+   */
+  public function postprocessSoapResponse();
 }
 
 abstract class SalesforceSoapApi_ResourceAbstract
@@ -77,13 +82,60 @@ abstract class SalesforceSoapApi_ResourceAbstract
     $SalesforceClient = SalesforceSoapApi_Client::wakeup($Agent);
     $SalesforceClient->open($Agent, $Url);
     $this->soapResponse = $SalesforceClient->query($this->soql);
-    AblePolecat_Debug::kill($this->soapResponse);
+    $this->postprocessSoapResponse();
     return TRUE;
   }
   
   /********************************************************************************
    * Helper functions.
    ********************************************************************************/
+  
+  /**
+   * @return bool TRUE if SOAP response returned all results of query, otherwise FALSE.
+   */
+  public function getQueryDone() {
+    $done = FALSE;
+    if (isset($this->soapResponse)) {
+      $done = $this->soapResponse->done;
+    }
+    return $done;
+  }
+  
+  /**
+   * @return string ID use in queryMore() or NULL.
+   */
+  public function getQueryLocater() {
+    $queryLocator = NULL;
+    if (isset($this->soapResponse)) {
+      $queryLocator = $this->soapResponse->queryLocator;
+    }
+    return $queryLocator;
+  }
+  
+  /**
+   * @return int Number of records returned by query.
+   */
+  public function getResponseRecordCount() {
+    $size = 0;
+    if (isset($this->soapResponse)) {
+      $size = $this->soapResponse->size;
+    }
+    return $size;
+  }
+  
+  /**
+   * @return Array Records returned by query.
+   */
+  public function getResponseRecords() {
+    $records = NULL;
+    if (isset($this->soapResponse)) {
+      $records = $this->soapResponse->records;
+    }
+    else {
+      $records = array();
+    }
+    return $records;
+  }
   
   /**
    * Extends __construct().
@@ -94,7 +146,7 @@ abstract class SalesforceSoapApi_ResourceAbstract
     // (Leave $this->resourceId and $this->resourceName undefined).
     //
     $this->validateRequestPath();
-    $this->uri = AblePolecat_Host::getRequest()->getBaseUrl() . AblePolecat_Host::getRequest()->getRequestPath(TRUE);
+    $this->setUri(AblePolecat_Host::getRequest()->getBaseUrl() . AblePolecat_Host::getRequest()->getRequestPath(TRUE));
     $this->soql = $this->interpretRequest();
     $this->soapResponse = NULL;
   }
