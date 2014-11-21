@@ -45,6 +45,35 @@ abstract class SalesforceSoapApi_ResourceAbstract
   private $soapResponse;
   
   /********************************************************************************
+   * Implementation of AblePolecat_DynamicObjectInterface.
+   ********************************************************************************/
+  
+  /**
+   * Override parent method to deal with sub-query results.
+   *
+   * @param string $name  Name of property to set.
+   * @param mixed  $value Value to assign to given property.
+   */
+  public function __set($name, $value) {
+    //
+    // If value is sub-query result, cast records as members of Array
+    //
+    if (is_object($value)) { 
+      if (isset($value->records) && isset($value->size)) {
+        parent::__set($name, $value->records);
+      }
+      else {
+        //
+        // @todo: only expecting sub-query results as objects, but verify
+        //
+      }
+    }
+    else {
+      parent::__set($name, $value);
+    }
+  }
+  
+  /********************************************************************************
    * Implementation of AblePolecat_AccessControl_ResourceInterface.
    ********************************************************************************/
    

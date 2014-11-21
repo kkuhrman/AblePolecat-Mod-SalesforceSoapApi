@@ -23,6 +23,11 @@ require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Service', 'C
 class SalesforceSoapApi_Client extends AblePolecat_Service_ClientAbstract {
   
   /**
+   * @var SalesforceSoapApi_Client Instance of singleton.
+   */
+  private static $Singleton;
+  
+  /**
    * @var SforceEnterpriseClient.
    */
   private $Client;
@@ -80,7 +85,10 @@ class SalesforceSoapApi_Client extends AblePolecat_Service_ClientAbstract {
    * @return AblePolecat_CacheObjectInterface Initialized server resource ready for business or NULL.
    */
   public static function wakeup(AblePolecat_AccessControl_SubjectInterface $Subject = NULL) {
-    return new SalesforceSoapApi_Client($Subject);
+    if (!isset(self::$Singleton)) {
+      self::$Singleton = new SalesforceSoapApi_Client($Subject);
+    }
+    return self::$Singleton; 
   }
   
   /********************************************************************************
