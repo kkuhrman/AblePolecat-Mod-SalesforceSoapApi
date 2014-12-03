@@ -13,9 +13,36 @@ if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
   define('SALESFORCE_SOAP_API_MOD_SRC_PATH', __DIR__);
 }
 require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'Service', 'Client', 'Salesforce.php')));
-require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Resource.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Resource', 'List.php')));
 
-interface SalesforceSoapApi_ResourceInterface extends AblePolecat_ResourceInterface {
+interface SalesforceSoapApi_ResourceInterface extends AblePolecat_Resource_ListInterface {
+  
+  /**
+   * Indicates whether object appears to be a Force.com SOAP response.
+   *
+   * @return bool TRUE If object appears to be a Force.com SOAP response, otherwise FALSE.
+   */
+  public static function isSoapResponse($Object);
+  
+  /**
+   * @return bool TRUE if SOAP response returned all results of query, otherwise FALSE.
+   */
+  public function getQueryDone();
+  
+  /**
+   * @return string ID use in queryMore() or NULL.
+   */
+  public function getQueryLocater();
+  
+  /**
+   * @return int Number of records returned by query.
+   */
+  public function getResponseRecordCount();
+  
+  /**
+   * @return Array Records returned by query.
+   */
+  public function getResponseRecords();
   
   /**
    * Interpret request path/query string as SOQL statement.
@@ -31,7 +58,7 @@ interface SalesforceSoapApi_ResourceInterface extends AblePolecat_ResourceInterf
 }
 
 abstract class SalesforceSoapApi_ResourceAbstract
-  extends AblePolecat_ResourceAbstract
+  extends AblePolecat_Resource_ListAbstract
   implements SalesforceSoapApi_ResourceInterface {
   
   /**
@@ -58,15 +85,8 @@ abstract class SalesforceSoapApi_ResourceAbstract
     //
     // If value is sub-query result, cast records as members of Array
     //
-    if (is_object($value)) { 
-      if (isset($value->records) && isset($value->size)) {
-        parent::__set($name, $value->records);
-      }
-      else {
-        //
-        // @todo: only expecting sub-query results as objects, but verify
-        //
-      }
+    if (self::isSoapResponse($value)) { 
+      parent::__set($name, $value->records);
     }
     else {
       parent::__set($name, $value);
@@ -116,8 +136,24 @@ abstract class SalesforceSoapApi_ResourceAbstract
   }
   
   /********************************************************************************
-   * Helper functions.
+   * Implementation of SalesforceSoapApi_ResourceInterface.
    ********************************************************************************/
+  
+  /**
+   * Indicates whether object appears to be a Force.com SOAP response.
+   *
+   * @return bool TRUE If object appears to be a Force.com SOAP response, otherwise FALSE.
+   */
+  public static function isSoapResponse($Object) {
+    
+    $testResult = FALSE;
+    if (is_object($Object)) { 
+      if (isset($Object->records) && is_array($Object->records) && isset($Object->size)) {
+        $testResult = TRUE;
+      }
+    }
+    return $testResult;
+  }
   
   /**
    * @return bool TRUE if SOAP response returned all results of query, otherwise FALSE.
@@ -165,6 +201,10 @@ abstract class SalesforceSoapApi_ResourceAbstract
     }
     return $records;
   }
+  
+  /********************************************************************************
+   * Helper functions.
+   ********************************************************************************/
   
   /**
    * Extends __construct().
