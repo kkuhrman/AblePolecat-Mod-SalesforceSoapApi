@@ -1,0 +1,17 @@
+<?xml version="1.0" standalone="yes"?>
+<polecat_project xmlns:polecat="http://polecat.kuhrman.com/">
+  <polecat:package id="d69bd6b3-5ef1-11e4-8bc7-0050569e00a2" name="AblePolecat-Mod-SalesforceSoapApi" type="MOD">
+    <polecat:repositoryUrl>https://github.com/kkuhrman/AblePolecat-Mod-SalesforceSoapApi</polecat:repositoryUrl>
+    <polecat:classes>
+      <polecat:class id="190b2bee-b62e-11e4-a12d-0050569e00a2" name="SalesforceSoapApi_Resource_Sobject_Std">
+        <polecat:path>Resource/Sobject/Std.php</polecat:path>
+        <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
+      </polecat:class>
+    </polecat:classes>
+    <polecat:classLibraries>
+      <polecat:classLibrary id="7178a704-b5fd-11e4-a12d-0050569e00a2" name="Force.com-Toolkit-for-PHP" type="lib" use="1">
+        <polecat:path>C:\wamp\www\polecat\private\usr\lib\Force.com-Toolkit-for-PHP</polecat:path>
+      </polecat:classLibrary>
+    </polecat:classLibraries>
+  </polecat:package>
+</polecat_project>
