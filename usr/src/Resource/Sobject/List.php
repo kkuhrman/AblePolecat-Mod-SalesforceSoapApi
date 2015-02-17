@@ -9,10 +9,10 @@
  * @version   0.7.0
  */
 
-if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
-  define('SALESFORCE_SOAP_API_MOD_SRC_PATH', dirname(dirname(__DIR__)));
+if (!defined('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH')) {
+  define('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH', dirname(dirname(__DIR__)));
 }
-require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'Resource', 'Sobject', 'Std.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'Resource', 'Sobject', 'Std.php')));
 
 interface SalesforceSoapApi_Resource_Sobject_ListInterface extends SalesforceSoapApi_ResourceInterface {
 }
@@ -39,7 +39,6 @@ abstract class SalesforceSoapApi_Resource_Sobject_ListAbstract
     // Add list items.
     //
     $Records = $this->getResponseRecords();
-    // AblePolecat_Debug::kill($Records);
     foreach($Records as $offset => $Record) {
       $ListItem = new SalesforceSoapApi_Resource_Sobject_Std();
       $Properties = get_object_vars($Record);

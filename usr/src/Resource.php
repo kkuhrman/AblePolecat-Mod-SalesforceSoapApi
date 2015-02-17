@@ -9,10 +9,7 @@
  * @version   0.7.0
  */
 
-if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
-  define('SALESFORCE_SOAP_API_MOD_SRC_PATH', __DIR__);
-}
-require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'Service', 'Client', 'Salesforce.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'Service', 'Client', 'Salesforce.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Resource', 'List.php')));
 
 interface SalesforceSoapApi_ResourceInterface extends AblePolecat_Resource_ListInterface {

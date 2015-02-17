@@ -9,10 +9,10 @@
  * @version   0.7.0
  */
 
-if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
-  define('SALESFORCE_SOAP_API_MOD_SRC_PATH', dirname(__DIR__));
+if (!defined('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH')) {
+  define('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH', dirname(__DIR__));
 }
-require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'Resource.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'Resource.php')));
 
 interface SalesforceSoapApi_Resource_SobjectInterface extends SalesforceSoapApi_ResourceInterface {
 }

@@ -13,11 +13,11 @@ if (!defined('SALESFORCE_SOAP_API_MOD_PATH')) {
   $SALESFORCE_SOAP_API_MOD_PATH = AblePolecat_Server_Paths::getFullPath('d69bd6b3-5ef1-11e4-8bc7-0050569e00a2');
   define('SALESFORCE_SOAP_API_MOD_PATH', $SALESFORCE_SOAP_API_MOD_PATH);
 }
-if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
-  define('SALESFORCE_SOAP_API_MOD_SRC_PATH', dirname(dirname(__DIR__)));
+if (!defined('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH')) {
+  define('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH', dirname(dirname(__DIR__)));
 }
-require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'AccessControl', 'Resource', 'Locater', 'Wsdl.php')));
-require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'Resource.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'AccessControl', 'Resource', 'Locater', 'Wsdl.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'Resource.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Transaction', 'Get', 'Resource.php')));
 
 class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transaction_Get_Resource {

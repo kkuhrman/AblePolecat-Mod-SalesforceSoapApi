@@ -13,11 +13,11 @@ if (!defined('FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH')) {
   $FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH = AblePolecat_Server_Paths::getFullPath('Force.com Toolkit for PHP');
   define('FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH', $FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH);
 }
-if (!defined('SALESFORCE_SOAP_API_MOD_SRC_PATH')) {
-  define('SALESFORCE_SOAP_API_MOD_SRC_PATH', dirname(dirname(__DIR__)));
+if (!defined('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH')) {
+  define('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH', dirname(dirname(__DIR__)));
 }
 require_once(implode(DIRECTORY_SEPARATOR, array(FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH, 'soapclient', 'SforceEnterpriseClient.php')));
-require_once(implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_SRC_PATH, 'QueryLanguage', 'Statement', 'Soql.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'QueryLanguage', 'Statement', 'Soql.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Service', 'Client.php')));
 
 class SalesforceSoapApi_Client extends AblePolecat_Service_ClientAbstract {
