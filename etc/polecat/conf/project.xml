@@ -10,7 +10,7 @@
     </polecat:classes>
     <polecat:classLibraries>
       <polecat:classLibrary id="7178a704-b5fd-11e4-a12d-0050569e00a2" name="Force.com-Toolkit-for-PHP" type="lib" use="1">
-        <polecat:path>C:\wamp\www\polecat\private\usr\lib\Force.com-Toolkit-for-PHP</polecat:path>
+        <polecat:path>Force.com-Toolkit-for-PHP</polecat:path>
       </polecat:classLibrary>
     </polecat:classLibraries>
   </polecat:package>
