@@ -36,6 +36,12 @@ class SalesforceSoapApi_Soql_Statement
   extends AblePolecat_QueryLanguage_StatementAbstract
   implements SalesforceSoapApi_Soql_StatementInterface {
   
+  /**
+   * Registry entry article constants.
+   */
+  const UUID = '75aec2f0-c7ed-11e4-a12d-0050569e00a2';
+  const NAME = 'SalesforceSoapApi_Soql_Statement';
+  
   /********************************************************************************
    * Implementation of AblePolecat_StdObjectInterface.
    ********************************************************************************/

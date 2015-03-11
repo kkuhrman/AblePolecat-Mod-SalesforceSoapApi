@@ -28,6 +28,12 @@ class SalesforceSoapApi_AccessControl_Resource_Locater_Wsdl
   implements SalesforceSoapApi_AccessControl_Resource_Locater_WsdlInterface {
   
   /**
+   * Registry entry article constants.
+   */
+  const UUID = 'aad1f60c-c7ed-11e4-a12d-0050569e00a2';
+  const NAME = 'SalesforceSoapApi_AccessControl_Resource_Locater_Wsdl';
+  
+  /**
    * @var string Force.com user security token.
    */
   private $securityToken;

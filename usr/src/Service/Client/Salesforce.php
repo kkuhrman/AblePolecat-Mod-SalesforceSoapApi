@@ -23,6 +23,12 @@ require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Service', 'C
 class SalesforceSoapApi_Client extends AblePolecat_Service_ClientAbstract {
   
   /**
+   * Registry entry article constants.
+   */
+  const UUID = 'f6967c4c-c7ec-11e4-a12d-0050569e00a2';
+  const NAME = 'SalesforceSoapApi_Client';
+  
+  /**
    * @var SalesforceSoapApi_Client Instance of singleton.
    */
   private static $Singleton;

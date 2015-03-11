@@ -3,8 +3,28 @@
   <polecat:package id="d69bd6b3-5ef1-11e4-8bc7-0050569e00a2" name="AblePolecat-Mod-SalesforceSoapApi" type="MOD">
     <polecat:repositoryUrl>https://github.com/kkuhrman/AblePolecat-Mod-SalesforceSoapApi</polecat:repositoryUrl>
     <polecat:classes>
+      <polecat:class id="aad1f60c-c7ed-11e4-a12d-0050569e00a2" name="SalesforceSoapApi_AccessControl_Resource_Locater_Wsdl">
+        <polecat:path>AccessControl/Resource/Locater/Wsdl.php</polecat:path>
+        <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
+      </polecat:class>
+      <polecat:class id="75aec2f0-c7ed-11e4-a12d-0050569e00a2" name="SalesforceSoapApi_Soql_Statement">
+        <polecat:path>QueryLanguage/Statement/Soql.php</polecat:path>
+        <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
+      </polecat:class>
+      <polecat:class id="3cb95032-c7ed-11e4-a12d-0050569e00a2" name="SalesforceSoapApi_Sosl_Statement">
+        <polecat:path>QueryLanguage/Statement/Sosl.php</polecat:path>
+        <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
+      </polecat:class>
       <polecat:class id="190b2bee-b62e-11e4-a12d-0050569e00a2" name="SalesforceSoapApi_Resource_Sobject_Std">
         <polecat:path>Resource/Sobject/Std.php</polecat:path>
+        <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
+      </polecat:class>
+      <polecat:class id="f6967c4c-c7ec-11e4-a12d-0050569e00a2" name="SalesforceSoapApi_Client">
+        <polecat:path>Service/Client/Salesforce.php</polecat:path>
+        <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
+      </polecat:class>
+      <polecat:class id="fa8b8693-4401-11e4-b353-0050569e00a2" name="SalesforceSoapApi_Transaction_Get_SoqlResult" register="1">
+        <polecat:path>Transaction/Get/SoqlResult.php</polecat:path>
         <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
       </polecat:class>
     </polecat:classes>
@@ -13,5 +33,15 @@
         <polecat:path>Force.com-Toolkit-for-PHP</polecat:path>
       </polecat:classLibrary>
     </polecat:classLibraries>
+    <polecat:locaters>
+      <polecat:locater id="SalesforceSoapApi_User" name="SalesforceSoapApi_User">
+        <polecat:username>user@example.com</polecat:username>
+        <polecat:password>password</polecat:password>
+        <polecat:securityToken>token-string</polecat:securityToken>
+      </polecat:locater>
+      <polecat:locater id="SalesforceSoapApi_Wsdl" name="SalesforceSoapApi_Wsdl">
+        <polecat:path>path/to/enterprise.wsdl.xml</polecat:path>
+      </polecat:locater>
+    </polecat:locaters>
   </polecat:package>
 </polecat_project>

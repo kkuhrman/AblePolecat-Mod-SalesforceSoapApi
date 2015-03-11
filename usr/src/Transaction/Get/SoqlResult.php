@@ -23,7 +23,7 @@ require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Transaction'
 class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transaction_Get_Resource {
   
   /**
-   * Constants.
+   * Registry entry article constants.
    */
   const UUID = 'fa8b8693-4401-11e4-b353-0050569e00a2';
   const NAME = 'SalesforceSoapApi_Transaction_Get_SoqlResult';
@@ -69,6 +69,7 @@ class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transacti
    * @return AblePolecat_CacheObjectInterface Initialized server resource ready for business or NULL.
    */
   public static function wakeup(AblePolecat_AccessControl_SubjectInterface $Subject = NULL) {
+    
     if (!isset(self::$Transaction)) {
       //
       // Unmarshall (from numeric keyed index to named properties) variable args list.
@@ -118,63 +119,69 @@ class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transacti
       }
       else {
         //
-        // Get client locater from configuration file.
+        // Get module registry entry.
         //
-        $confPath = implode(DIRECTORY_SEPARATOR, 
-          array(
-            SALESFORCE_SOAP_API_MOD_PATH,
-            'etc',
-            'conf',
-            self::CONF_FILENAME_MOD
-          )
-        );
-        $Conf = new DOMDocument();
-        $Conf->load($confPath);
+        $RegistryEntry = AblePolecat_Registry_Entry_ClassLibrary::fetch(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_LIB_ID);
         
         //
-        // Check WSDL path.
+        // Get module local project configuration file.
         //
-        $defaultWsdlPath = implode(DIRECTORY_SEPARATOR, array(SALESFORCE_SOAP_API_MOD_PATH, 'etc', 'wsdl', 'enterprise.wsdl.xml'));
+        $localProjectConfFile = NULL;
+        if (isset($RegistryEntry)) {
+          $localProjectConfFile = AblePolecat_Mode_Config::getModuleConfFile($RegistryEntry);
+        }
+        
+        //
+        // Get SOAP client locater settings.
+        //
         $wsdlPath = '';
         $userName = '';
-        $NodeList = AblePolecat_Dom::getElementsByTagName($Conf, 'locater');
-        foreach($NodeList as $key => $Node) {
+        $passWord = '';
+        $securityToken = '';
+        if (isset($localProjectConfFile)) {
           //
-          // Only one instance of core (server mode) database can be active.
-          // Otherwise, Able Polecat stops boot and throws exception.
-          // @see ./polecat/etc/conf/host.xml
-          // <database id="core" name="polecat" mode="server" use="1">
-          //   <dsn>mysql://user:pass@localhost/polecat</dsn>
-          // </database>
+          // WSDL path.
           //
-          if (($Node->getAttribute('id') == 'Salesforce.com') &&
-              ($Node->getAttribute('name') == 'soapClient') &&  
-              ($Node->getAttribute('use'))) 
-          {
-            foreach($Node->childNodes as $key => $childNode) {
-              if($childNode->nodeName == 'fullPath') {
-                $wsdlPath = $childNode->nodeValue;
-                if (!file_exists($wsdlPath)) {
-                  //
-                  // User did not set WSDL path in configuration file, try default...
-                  //
-                  if (!file_exists($defaultWsdlPath)) {
-                    throw new AblePolecat_Resource_Exception(sprintf("Salesforce.com SOAP client WSDL path is not valid. Tried %s; %s",
-                      addslashes($wsdlPath),
-                      addslashes($defaultWsdlPath)
+          $Node = AblePolecat_Dom::getElementById($localProjectConfFile, ABLEPOLECAT_MOD_SALESFORCESOAPAPI_WSDL_ID);
+          if (isset($Node)) {
+            if (isset($Node->childNodes)) {
+              foreach($Node->childNodes as $key => $childNode) {
+                if($childNode->nodeName == 'polecat:path') {
+                  $wsdlPath = $childNode->nodeValue;
+                  if (!file_exists($wsdlPath)) {
+                    //
+                    // User did not set valid WSDL path in local project configuration file.
+                    //
+                    throw new AblePolecat_Resource_Exception(sprintf("Salesforce.com SOAP client WSDL path is not valid. Tried %s",
+                      addslashes($wsdlPath)
                     ));
                   }
-                  $wsdlPath = $defaultWsdlPath;
+                  break;
                 }
               }
-              if ($childNode->nodeName == 'userName') {
-                $userName = $childNode->nodeValue;
-              }
-              if ($childNode->nodeName == 'passWord') {
-                $passWord = $childNode->nodeValue;
-              }
-              if ($childNode->nodeName == 'securityToken') {
-                $securityToken = $childNode->nodeValue;
+            }
+          }
+          
+          //
+          // Salesforce.com user login.
+          //
+          $Node = AblePolecat_Dom::getElementById($localProjectConfFile, ABLEPOLECAT_MOD_SALESFORCESOAPAPI_USER_ID);
+          if (isset($Node)) {
+            if (isset($Node->childNodes)) {
+              foreach($Node->childNodes as $key => $childNode) {
+                switch ($childNode->nodeName) {
+                  default:
+                    break;
+                  case 'polecat:username':
+                    $userName = $childNode->nodeValue;
+                    break;
+                  case 'polecat:password':
+                    $passWord = $childNode->nodeValue;
+                    break;
+                  case 'polecat:securityToken':
+                    $securityToken = $childNode->nodeValue;
+                    break;
+                }
               }
             }
           }
