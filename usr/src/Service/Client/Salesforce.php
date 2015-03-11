@@ -10,7 +10,7 @@
  */
 
 if (!defined('FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH')) {
-  $FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH = AblePolecat_Server_Paths::getFullPath('Force.com Toolkit for PHP');
+  $FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH = AblePolecat_Server_Paths::getFullPath('7178a704-b5fd-11e4-a12d-0050569e00a2');
   define('FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH', $FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH);
 }
 if (!defined('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH')) {
