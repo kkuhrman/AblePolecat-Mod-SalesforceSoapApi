@@ -4,6 +4,12 @@
  * @file      AblePolecat-Mod-SalesforceSoapApi/usr/src/QueryLanguage/Statement/Sosl.php
  * @brief     Encapsulates SOSL statement.
  *
+ * @todo: SOSL [ WITH DivisionFilter ]
+ * @todo: SOSL [ WITH DATA CATEGORY DataCategorySpec ]
+ * @todo: SOSL [ WITH SNIPPET[(target_length=n)] ]
+ * @todo: SOSL [ WITH NETWORK NetworkIdSpec ]
+ * @todo: SOSL [ UPDATE [TRACKING], [VIEWSTAT] ]
+ *
  * @author    Karl Kuhrman
  * @copyright [BDS II License] (https://github.com/kkuhrman/AblePolecat/blob/master/LICENSE.md)
  * @version   0.7.0
@@ -32,6 +38,18 @@ interface SalesforceSoapApi_Sosl_StatementInterface
   const SEARCH_GROUP_EMAIL    = 'EMAIL FIELDS';
   const SEARCH_GROUP_PHONE    = 'PHONE FIELDS';
   const SEARCH_GROUP_SIDEBAR  = 'SIDEBAR FIELDS';
+  const SCOPE_ENTIRE_QUERY    = 'ENTIRE QUERY';
+  
+  const SOSL_SYNTAX = 'FIND {SearchQuery} \n \
+    [ IN SearchGroup [ convertCurrency(Amount)] ] \n \
+    [ RETURNING FieldSpec [ toLabel(fields)] ] \n \
+    [ WITH DivisionFilter ] \n \
+    [ WITH DATA CATEGORY DataCategorySpec ] \n \
+    [ WITH SNIPPET[(target_length=n)] ] \n \
+    [ WITH NETWORK NetworkIdSpec ] \n \
+    [ LIMIT n ] \n \
+    [ OFFSET n ] \n \
+    [ UPDATE [TRACKING], [VIEWSTAT] ]';
 }
 
 /**
@@ -56,6 +74,11 @@ class SalesforceSoapApi_Sosl_Statement
    * @var supported sql syntax.
    */
   private static $supportedSosl = NULL;
+  
+  /**
+   * @var Array Internal pointer to most recently defined RETURNING clause.
+   */
+  private $currentReturningClause;
   
   /********************************************************************************
    * Implementation of AblePolecat_StdObjectInterface.
@@ -115,11 +138,35 @@ class SalesforceSoapApi_Sosl_Statement
    * @return query langauge statement as a string.
    */
   public function __toString() {
-    $sqlStatement = '';
+    
+    $tokens = array();
+    
     //
-    // @todo implement SOSL __toString().
+    // FIND
     //
-    return $sqlStatement;
+    $tokens[] = sprintf("FIND {%s}",
+      $this->getSearchQuery()
+    );
+    
+    //
+    // IN
+    //
+    $searchGroup = $this->getSearchGroup();
+    isset($searchGroup) ? $tokens[] = sprintf("IN %s", $searchGroup) : NULL;
+    
+    //
+    // RETURNING
+    //
+    $returningClause = $this->getReturningClause();
+    isset($returningClause) ? $tokens[] = sprintf("RETURNING %s", $returningClause) : NULL;
+    
+    //
+    // Entire query limit
+    //
+    $entireQueryLimit = $this->getLimitOffsetSyntax();
+    isset($entireQueryLimit) ? $tokens[] = $entireQueryLimit : NULL;
+    
+    return implode(' ', $tokens);
   }
      
   /**
@@ -245,6 +292,45 @@ class SalesforceSoapApi_Sosl_Statement
   }
   
   /**
+   * @param string $searchQuery The text to search for.
+   *
+   * @return SalesforceSoapApi_Sosl_Statement.
+   */
+  public function _and() {
+    $args = func_get_args();
+    if (isset($args[0])) {
+      $this->appendSearchQuery($args[0], 'AND');
+    }
+    return $this;
+  }
+  
+  /**
+   * @param string $searchQuery The text to search for.
+   *
+   * @return SalesforceSoapApi_Sosl_Statement.
+   */
+  public function _and_not() {
+    $args = func_get_args();
+    if (isset($args[0])) {
+      $this->appendSearchQuery($args[0], 'AND NOT');
+    }
+    return $this;
+  }
+  
+  /**
+   * @param string $searchQuery The text to search for.
+   *
+   * @return SalesforceSoapApi_Sosl_Statement.
+   */
+  public function _or() {
+    $args = func_get_args();
+    if (isset($args[0])) {
+      $this->appendSearchQuery($args[0], 'OR');
+    }
+    return $this;
+  }
+  
+  /**
    * Set SOSL search group.
    *
    * @param string $searchGroup
@@ -270,8 +356,9 @@ class SalesforceSoapApi_Sosl_Statement
    */
   public function limit() {
     $args = func_get_args();
-    isset($args[0]) ? $this->setLimit($args[0]) : NULL;
-    isset($args[1]) ? $this->setOffset($args[1]) : NULL;
+    isset($args[2]) ? $scope = $args[2] : $scope = $this->currentReturningClause;
+    isset($args[0]) ? $this->setLimit($args[0], $scope) : NULL;
+    isset($args[1]) ? $this->setOffset($args[1], $scope) : NULL;
     return $this;
   }
   
@@ -286,10 +373,24 @@ class SalesforceSoapApi_Sosl_Statement
    * @return SalesforceSoapApi_Sosl_Statement.
    */
   public function order_by() {
-    $OrderByExpression = NULL;
+    
+    $orderByTokens = array();
+    
     foreach(func_get_args() as $key => $arg) {
-      $OrderByExpression .= $arg;
+      switch (strtoupper($arg)) {
+        default:
+          $orderByTokens[] = $arg;
+          break;
+        case 'ASC':
+        case 'DESC':
+          if (isset($orderByTokens[$key - 1])) {
+            $token = $orderByTokens[$key - 1] . ' ' . $arg;
+            $orderByTokens[$key - 1] = $token;
+          }
+          break;
+      }
     }
+    $OrderByExpression = implode(', ', $orderByTokens);
     $this->setOrderByExpression($OrderByExpression);
     return $this;
   }
@@ -348,14 +449,7 @@ class SalesforceSoapApi_Sosl_Statement
   /********************************************************************************
    * Helper functions.
    ********************************************************************************/
-  
-  /**
-   * @return string QueryObject field list.
-   */
-  public function getFields() {
-    return $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::FIELDS, NULL);
-  }
-  
+    
   /**
    * @return string LIMIT.
    */
@@ -369,8 +463,10 @@ class SalesforceSoapApi_Sosl_Statement
   public function getLimitOffsetSyntax() {
     
     $Syntax = NULL;
-    $Limit = $this->getLimit();
-    $Offset = $this->getOffset();
+    $args = func_get_args();
+    isset($args[0]) ? $Limit = $args[0] : $Limit = $this->getLimit();
+    isset($args[1]) ? $Offset = $args[1] : $Offset = NULL;
+    
     if (isset($Limit)) {
       $Syntax = "LIMIT $Limit";
       isset($Offset) ? $Syntax .= " OFFSET $Offset" : NULL;
@@ -379,26 +475,70 @@ class SalesforceSoapApi_Sosl_Statement
   }
   
   /**
-   * @return string OFFSET.
+   * @return string Search query (text following FIND keyword).
    */
-  public function getOffset() {
-    return $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::OFFSET, NULL);
+  public function getSearchQuery() {
+    return $this->getPropertyValue(SalesforceSoapApi_Sosl_StatementInterface::SEARCH_QUERY);
   }
   
   /**
-   * @return string ORDER BY expression.
+   * @param string ALL FIELDS | NAME FIELDS | EMAIL FIELDS | PHONE FIELDS | SIDEBAR FIELDS
    */
-  public function getOrderByExpression() {
-    return $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::ORDERBY, NULL);
+  public function getSearchGroup() {
+    return $this->getPropertyValue(SalesforceSoapApi_Sosl_StatementInterface::SEARCH_GROUP);
   }
   
   /**
-   * @return string WHERE condition.
+   * Return the tokens in the RETURNING clause(es) OR build SOSL RETURNING clause.
+   *
+   * @param bool $asStr IF TRUE, build SOSL RETURNING clause and return string, otherwise return tokens.
+   *
+   * @return mixed
    */
-  public function getWhereCondition() {
-    return $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::WHERE, NULL);
+  public function getReturningClause($asStr = TRUE) {
+    $returningClause = '';
+    $returnObjects = $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT);
+    if ($asStr && isset($returnObjects)) {
+      $returningClauseSubqueries = array();
+      foreach($returnObjects as $objectName => $objectTokens) {
+        $returningClauseSubquery = $objectName;
+        $fieldsExpression = '';
+        $whereExpression = '';
+        $orderByExpression = '';
+        $limitExpression = '';
+        if (isset($objectTokens[self::FIELDS])) {
+          $fieldsExpression = implode(', ', $objectTokens[self::FIELDS]);
+        }
+        if (isset($objectTokens[self::WHERE]) && isset($objectTokens[self::WHERE][0])) {
+          $whereExpression = sprintf(" WHERE %s", $objectTokens[self::WHERE][0]);
+        }
+        if (isset($objectTokens[self::ORDERBY]) && isset($objectTokens[self::ORDERBY][0])) {
+          $orderByExpression = sprintf(" ORDER BY %s", $objectTokens[self::ORDERBY][0]);
+        }
+        if (isset($objectTokens[self::LIMIT]) && isset($objectTokens[self::LIMIT][0])) {
+          $limit = $objectTokens[self::LIMIT][0];
+          $offset = NULL;
+          if (isset($objectTokens[self::OFFSET]) && isset($objectTokens[self::OFFSET][0])) {
+            $offset = $objectTokens[self::OFFSET][0];
+          }
+          $limitExpression = ' ' . $this->getLimitOffsetSyntax($limit, $offset);
+        }
+        $returningClauseSubquery .= sprintf("(%s%s%s%s)", 
+          $fieldsExpression, 
+          $whereExpression,
+          $orderByExpression,
+          $limitExpression
+        );
+        $returningClauseSubqueries[] = $returningClauseSubquery;
+      }
+      $returningClause = implode(', ', $returningClauseSubqueries);
+    }
+    else {
+      $returningClause = $returnObjects;
+    }
+    return $returningClause;
   }
-  
+    
   /**
    * Set LIMIT.
    *
@@ -408,14 +548,24 @@ class SalesforceSoapApi_Sosl_Statement
    */
   public function setLimit($Limit) {
     
-    $DmlOp = $this->getDmlOp();
-    $Element = AblePolecat_QueryLanguage_StatementInterface::LIMIT;
-    if (self::supportsSyntax($DmlOp, $Element)) {
-      parent::__set($Element, intval($Limit));
+    //
+    // throw exception if syntax is out of order.
+    //
+    $returnObjects = $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT);
+    if (!isset($returnObjects)) {
+      throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+        'LIMIT, OFFSET clause must be preceded by RETURNING',
+        SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+      ));
+    }
+    
+    $args = func_get_args();
+    isset($args[1]) ? $scope = $args[1] : $scope = self::SCOPE_ENTIRE_QUERY;
+    if ($this->currentReturningClause == $scope) {
+      $this->appendToReturningClauseForObject($scope, AblePolecat_QueryLanguage_StatementInterface::LIMIT, $Limit);
     }
     else {
-      throw new AblePolecat_QueryLanguage_Exception("Invalid SOSL Syntax [$DmlOp | $Element].",
-        AblePolecat_Error::INVALID_SYNTAX);
+      parent::__set(AblePolecat_QueryLanguage_StatementInterface::LIMIT, $Limit);
     }
   }
   
@@ -428,14 +578,33 @@ class SalesforceSoapApi_Sosl_Statement
    */
   public function setOffset($Offset) {
     
-    $DmlOp = $this->getDmlOp();
-    $Element = AblePolecat_QueryLanguage_Statement_Sql_Interface::OFFSET;
-    if (self::supportsSyntax($DmlOp, $Element)) {
-      parent::__set($Element, intval($Offset));
+    //
+    // throw exception if syntax is out of order.
+    //
+    $returnObjects = $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT);
+    if (!isset($returnObjects)) {
+      throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+        'LIMIT, OFFSET clause must be preceded by RETURNING',
+        SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+      ));
+    }
+    
+    $args = func_get_args();
+    isset($args[1]) ? $scope = $args[1] : $scope = self::SCOPE_ENTIRE_QUERY;
+    if ($this->currentReturningClause == $scope) {
+      if (!isset($returnObjects[$scope][AblePolecat_QueryLanguage_StatementInterface::LIMIT])) {
+        throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+          'Cannot declare OFFSET without LIMIT',
+          SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+        ));
+      }
+      $this->appendToReturningClauseForObject($scope, AblePolecat_QueryLanguage_StatementInterface::OFFSET, $Offset);
     }
     else {
-      throw new AblePolecat_QueryLanguage_Exception("Invalid SOSL Syntax [$DmlOp | $Element].",
-        AblePolecat_Error::INVALID_SYNTAX);
+      throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+        'Cannot declare OFFSET in LIMIT clause for entire SOSL query',
+        SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+      ));
     }
   }
   
@@ -444,33 +613,22 @@ class SalesforceSoapApi_Sosl_Statement
    *
    * Example: returning('Custom_Object__c', array('Id', 'Name', 'Custom_Field__c DESC',))
    *
-   * @param string $sobjectName
    * @param array $OrderByExpression
    *
    * @throw AblePolecat_QueryLanguage_Exception if syntax is not supported.
    */
-  public function setOrderByExpression($sobjectName, $OrderByExpression) {
-    
-    if (isset($sobjectName) && is_string($sobjectName)) {
-      $returnObjects = $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT, NULL);
-      if (!isset($returnObjects)) {
-        $returnObjects = array();
-      }
-      if (!isset($returnObjects[$sobjectName])) {
-        $returnObjects[$sobjectName] = array();
-      }
-      AblePolecat_QueryLanguage_StatementInterface::ORDERBY;
-      // parent::__set(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT, $returnObjects);
+  public function setOrderByExpression($OrderByExpression) {
+    //
+    // ORDER BY clause must be associated with a RETURNING clause field spec.
+    // @see https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_sosl_returning.htm#topic-title
+    //
+    if (!isset($this->currentReturningClause)) {
+      throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+        'ORDER BY clause must be associated with a RETURNING clause field spec',
+        SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+      ));
     }
-    if (self::supportsSyntax($DmlOp, $Element)) {
-      parent::__set($Element, strval($OrderByExpression));
-    }
-    else {
-      throw new AblePolecat_QueryLanguage_Exception(sprintf("ORDER BY clause associated SObject name must be string. %s given",
-        AblePolecat_Data::getDataTypeName($sobjectName)),
-        AblePolecat_Error::INVALID_SYNTAX
-      );
-    }
+    $this->appendToReturningClauseForObject($this->currentReturningClause, AblePolecat_QueryLanguage_StatementInterface::ORDERBY, $OrderByExpression);
   }
   
   /**
@@ -485,16 +643,33 @@ class SalesforceSoapApi_Sosl_Statement
    */
   public function setReturningClause($sobjectName, $fieldList = NULL) {
     
+    //
+    // throw exception if syntax is out of order.
+    //
+    $searchQuery = $this->getPropertyValue(SalesforceSoapApi_Sosl_StatementInterface::SEARCH_QUERY);
+    if (!isset($searchQuery)) {
+      throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+        'RETURNING clause must be preceded by FIND',
+        SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+      ));
+    }
+    
     if (isset($sobjectName) && is_string($sobjectName)) {
       $returnObjects = $this->getPropertyValue(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT, NULL);
       if (!isset($returnObjects)) {
-        $returnObjects = array();
+        parent::__set(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT, array($sobjectName => array()));
       }
       if (!isset($returnObjects[$sobjectName])) {
         $returnObjects[$sobjectName] = array();
-      }      
-      // parent::__set(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT, $returnObjects);
+        parent::__set(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT, $returnObjects);
+      }
       $this->appendToReturningClauseForObject($sobjectName, AblePolecat_QueryLanguage_StatementInterface::FIELDS, $fieldList);
+      
+      //
+      // Internal pointer saves name of object associated with most recently
+      // defined RETURNING clause in case LIMIT, WHERE, etc expressions follow.
+      //
+      $this->currentReturningClause = $sobjectName;
     }
     else {
       throw new AblePolecat_QueryLanguage_Exception(sprintf("SObject name in RETURNING clause must be string. %s given",
@@ -513,21 +688,35 @@ class SalesforceSoapApi_Sosl_Statement
    */
   public function setSearchGroup($searchGroup) {
     
+    //
+    // throw exception if syntax is out of order.
+    //
+    $searchQuery = $this->getPropertyValue(SalesforceSoapApi_Sosl_StatementInterface::SEARCH_QUERY);
+    if (!isset($searchQuery)) {
+      throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+        'IN clause must be preceded by FIND',
+        SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+      ));
+    }
+    
     if (is_string($searchGroup)) {
+      $searchGroupErrorMessage = "Search group must be \
+        ALL FIELDS | NAME FIELDS | EMAIL FIELDS | PHONE FIELDS | SIDEBAR FIELDS.";
       switch($searchGroup) {
-        case self::SEARCH_GROUP_ALL:
-        case self::SEARCH_GROUP_NAME:
-        case self::SEARCH_GROUP_EMAIL:
-        case self::SEARCH_GROUP_PHONE:
-        case self::SEARCH_GROUP_SIDEBAR:
-          parent::__set(self::SEARCH_GROUP, $searchGroup);
+        default:
+          throw new AblePolecat_QueryLanguage_Exception($searchGroupErrorMessage, AblePolecat_Error::INVALID_SYNTAX);
+          break;
+        case SalesforceSoapApi_Sosl_StatementInterface::SEARCH_GROUP_ALL:
+        case SalesforceSoapApi_Sosl_StatementInterface::SEARCH_GROUP_NAME:
+        case SalesforceSoapApi_Sosl_StatementInterface::SEARCH_GROUP_EMAIL:
+        case SalesforceSoapApi_Sosl_StatementInterface::SEARCH_GROUP_PHONE:
+        case SalesforceSoapApi_Sosl_StatementInterface::SEARCH_GROUP_SIDEBAR:
+          parent::__set(SalesforceSoapApi_Sosl_StatementInterface::SEARCH_GROUP, $searchGroup);
           break;
       }
     }
     else {
-      throw new AblePolecat_QueryLanguage_Exception("Search group must be \
-        ALL FIELDS | NAME FIELDS | EMAIL FIELDS | PHONE FIELDS | SIDEBAR FIELDS.",
-        AblePolecat_Error::INVALID_SYNTAX);
+      throw new AblePolecat_QueryLanguage_Exception($searchGroupErrorMessage, AblePolecat_Error::INVALID_SYNTAX);
     }
   }
   
@@ -541,7 +730,49 @@ class SalesforceSoapApi_Sosl_Statement
   public function setSearchQuery($searchQuery) {
     
     if (is_scalar($searchQuery)) {
-      parent::__set(self::SEARCH_QUERY, strval($searchQuery));
+      parent::__set(SalesforceSoapApi_Sosl_StatementInterface::SEARCH_QUERY, strval($searchQuery));
+    }
+    else {
+      throw new AblePolecat_QueryLanguage_Exception(sprintf("Search query must be scalar. %s given.",
+        AblePolecat_Data::getDataTypeName($searchQuery)),
+        AblePolecat_Error::INVALID_SYNTAX
+      );
+    }
+  }
+  
+  /**
+   * Append term(s) to the SOSL search query.
+   *
+   * @param string $searchQuery
+   * @param string $conjunction AND | OR | AND NOT | NULL
+   *
+   * @throw AblePolecat_QueryLanguage_Exception if syntax is not supported.
+   */
+  public function appendSearchQuery($searchQuery, $conjunction) {
+    
+    $conjunction = strtoupper($conjunction);
+    if (is_scalar($searchQuery)) {
+      //
+      // throw exception if syntax is out of order.
+      //
+      $appendQuery = $this->getPropertyValue(SalesforceSoapApi_Sosl_StatementInterface::SEARCH_QUERY);
+      switch ($conjunction) {
+        default:
+          $appendQuery .= ' ' . $searchQuery;
+          break;
+        case 'AND':
+        case 'AND NOT':
+        case 'OR':
+          if (!isset($appendQuery)) {
+            throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+              sprintf("%s clause must be preceded by FIND", $conjunction),
+              SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+            ));
+          }
+          $appendQuery .= ' ' . implode(' ', array($conjunction, $searchQuery));
+          break;
+      }
+      parent::__set(SalesforceSoapApi_Sosl_StatementInterface::SEARCH_QUERY, strval($appendQuery));
     }
     else {
       throw new AblePolecat_QueryLanguage_Exception(sprintf("Search query must be scalar. %s given.",
@@ -560,15 +791,17 @@ class SalesforceSoapApi_Sosl_Statement
    */
   public function setWhereCondition($WhereCondition) {
     
-    $DmlOp = $this->getDmlOp();
-    $Element = AblePolecat_QueryLanguage_StatementInterface::WHERE;
-    if (self::supportsSyntax($DmlOp, $Element)) {
-      parent::__set($Element, strval($WhereCondition));
+    //
+    // WHERE clause must be associated with a RETURNING clause field spec.
+    // @see https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_sosl_returning.htm#topic-title
+    //
+    if (!isset($this->currentReturningClause)) {
+      throw new AblePolecat_QueryLanguage_Exception(sprintf("SOSL syntax error. %s. SOSL syntax is %s.",
+        'WHERE clause must be associated with a RETURNING clause field spec',
+        SalesforceSoapApi_Sosl_StatementInterface::SOSL_SYNTAX
+      ));
     }
-    else {
-      throw new AblePolecat_QueryLanguage_Exception("Invalid SOSL Syntax [$DmlOp | $Element].",
-        AblePolecat_Error::INVALID_SYNTAX);
-    }
+    $this->appendToReturningClauseForObject($this->currentReturningClause, AblePolecat_QueryLanguage_StatementInterface::WHERE, $WhereCondition);
   }
   
   /**
@@ -589,14 +822,15 @@ class SalesforceSoapApi_Sosl_Statement
         case self::FIELDS:
         case self::WHERE:
         case self::ORDERBY:
-        case self::LIMIT:          
+        case self::LIMIT:
+        case self::OFFSET:
           if (!isset($returnObjects[$sobjectName][$subQueryElementName])) {
             $returnObjects[$sobjectName][$subQueryElementName] = array();
             if (isset($subQueryTerms)) {
               if(is_array($subQueryTerms)) {
                 foreach($subQueryTerms as $key => $term) {
                   if (is_scalar($term)) {
-                    $returnObjects[$sobjectName][$subQueryElementName][] = $term;
+                  $returnObjects[$sobjectName][$subQueryElementName][] = $term;
                   }
                   else {
                     throw new AblePolecat_QueryLanguage_Exception(sprintf("Sub query term in RETURNING clause must be string. %s given",
@@ -621,7 +855,7 @@ class SalesforceSoapApi_Sosl_Statement
           }
           default:
       }
-      // parent::__set(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT, $returnObjects);
+      parent::__set(AblePolecat_QueryLanguage_StatementInterface::QUERYOBJECT, $returnObjects);
     }
     else {
       throw new AblePolecat_QueryLanguage_Exception(sprintf("%s not defined in RETURNING clause", $sobjectName),
@@ -648,5 +882,6 @@ class SalesforceSoapApi_Sosl_Statement
         self::OFFSET => TRUE,
       ),
     );
+    $this->currentReturningClause = NULL;
   }
 }

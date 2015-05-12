@@ -2,6 +2,7 @@
 <polecat_project xmlns:polecat="http://polecat.kuhrman.com/">
   <polecat:package id="d69bd6b3-5ef1-11e4-8bc7-0050569e00a2" name="AblePolecat-Mod-SalesforceSoapApi" type="MOD">
     <polecat:repositoryUrl>https://github.com/kkuhrman/AblePolecat-Mod-SalesforceSoapApi</polecat:repositoryUrl>
+    <polecat:classPrefix>SalesforceSoapApi</polecat:classPrefix>
     <polecat:classes>
       <polecat:class id="aad1f60c-c7ed-11e4-a12d-0050569e00a2" name="SalesforceSoapApi_AccessControl_Resource_Locater_Wsdl">
         <polecat:path>AccessControl/Resource/Locater/Wsdl.php</polecat:path>
