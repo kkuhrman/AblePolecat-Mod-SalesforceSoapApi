@@ -51,7 +51,7 @@ class SalesforceSoapApi_AccessControl_Resource_Locater_Wsdl
    * @return object Instance of class implementing AblePolecat_AccessControl_Resource_LocaterInterface or NULL.
    */
   public static function create($url, $baseURL = NULL) {
-    isset($baseURL) ? $url = $baseURL . self::URI_SLASH . $url : NULL;
+    isset($baseURL) ? $url = $baseURL . URI_SLASH . $url : NULL;
     $Locater = new SalesforceSoapApi_AccessControl_Resource_Locater_Wsdl($url);
     return $Locater;
   }
