@@ -18,6 +18,7 @@ if (!defined('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH')) {
 }
 require_once(implode(DIRECTORY_SEPARATOR, array(FORCE_DOT_COM_TOOLKIT_FOR_PHP_PATH, 'soapclient', 'SforceEnterpriseClient.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'QueryLanguage', 'Statement', 'Soql.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'QueryLanguage', 'Statement', 'Sosl.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Service', 'Client.php')));
 
 class SalesforceSoapApi_Client extends AblePolecat_Service_ClientAbstract {
@@ -112,7 +113,39 @@ class SalesforceSoapApi_Client extends AblePolecat_Service_ClientAbstract {
     
     $Response = NULL;
     if(isset($this->Client)) {
-      $Response = $this->Client->query($soql);
+      try {
+        $Response = $this->Client->query($soql);
+      }
+      catch(Exception $Exception) {
+        $notice = sprintf("%s. This error can also be caused by insufficient field-level access rights in Salesforce.com. Check user access to each object property in query.",
+          $Exception->getMessage()
+        );
+        AblePolecat_Command_Chain::triggerError($notice, E_USER_NOTICE);
+      }
+    }
+    return $Response;
+  }
+  
+  /**
+   * Execute SOSL and return result.
+   *
+   * @param SalesforceSoapApi_Sosl_StatementInterface $sosl
+   *
+   * @return object or NULL.
+   */
+  public function search(SalesforceSoapApi_Sosl_StatementInterface $sosl) {
+    
+    $Response = NULL;
+    if(isset($this->Client)) {
+      try {
+        $Response = $this->Client->search($sosl);
+      }
+      catch(Exception $Exception) {
+        $notice = sprintf("%s. This error can also be caused by insufficient field-level access rights in Salesforce.com. Check user access to each object property in query.",
+          $Exception->getMessage()
+        );
+        AblePolecat_Command_Chain::triggerError($notice, E_USER_NOTICE);
+      }
     }
     return $Response;
   }

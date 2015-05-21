@@ -1,8 +1,8 @@
 <?php
 /**
  * @package   Salesforce.com SOAP API module for Able Polecat.
- * @file      AblePolecat-Mod-SalesforceSoapApi/usr/src/Transaction/Get/SoqlResult.php
- * @brief     Able Polecat transaction processes SOAP request and returns resource.
+ * @file      AblePolecat-Mod-SalesforceSoapApi/usr/src/Transaction/Restricted.php
+ * @brief     Base class for all transactions using the Force.com SOAP API.
  *
  * @author    Karl Kuhrman
  * @copyright [BDS II License] (https://github.com/kkuhrman/AblePolecat/blob/master/LICENSE.md)
@@ -14,43 +14,40 @@ if (!defined('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH')) {
 }
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'AccessControl', 'Resource', 'Locater', 'Wsdl.php')));
 require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'Resource.php')));
-require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Transaction', 'Unrestricted.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLE_POLECAT_CORE, 'Transaction', 'Restricted.php')));
 
-class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transaction_Unrestricted {
-  
-  /**
-   * Registry entry article constants.
-   */
-  const UUID = 'fa8b8693-4401-11e4-b353-0050569e00a2';
-  const NAME = 'SalesforceSoapApi_Transaction_Get_SoqlResult';
+interface SalesforceSoapApi_Transaction_RestrictedInterface extends AblePolecat_Transaction_RestrictedInterface {
+}
+
+abstract class SalesforceSoapApi_Transaction_RestrictedAbstract 
+  extends AblePolecat_TransactionAbstract 
+  implements SalesforceSoapApi_Transaction_RestrictedInterface {
   
   const CONF_FILENAME_MOD = 'module.xml';
-    
-  /********************************************************************************
-   * Implementation of AblePolecat_CacheObjectInterface.
-   ********************************************************************************/
   
   /**
-   * Create a new instance of object or restore cached object to previous state.
-   *
-   * @param AblePolecat_AccessControl_SubjectInterface Session status helps determine if connection is new or established.
-   *
-   * @return AblePolecat_CacheObjectInterface Initialized server resource ready for business or NULL.
+   * @var SalesforceSoapApi_AccessControl_Resource_Locater_Wsdl.
    */
-  public static function wakeup(AblePolecat_AccessControl_SubjectInterface $Subject = NULL) {
-    
-    //
-    // Unmarshall (from numeric keyed index to named properties) variable args list.
-    //
-    $ArgsList = self::unmarshallArgsList(__FUNCTION__, func_get_args());
-    $Transaction = new SalesforceSoapApi_Transaction_Get_SoqlResult($ArgsList->getArgumentValue(self::TX_ARG_SUBJECT));
-    self::prepare($Transaction, $ArgsList, __FUNCTION__);
-    return $Transaction;
-  }
+  private $WsdlLocater;
+  
+  /**
+   * @var mixed Security token from Force.com SOAP service.
+   */
+  private $SecurityToken;
   
   /********************************************************************************
    * Implementation of AblePolecat_TransactionInterface.
    ********************************************************************************/
+   
+  /**
+   * Commit
+   */
+  public function commit() {
+    //
+    // Parent updates transaction in database.
+    //
+    parent::commit();
+  }
   
   /**
    * Rollback
@@ -59,6 +56,47 @@ class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transacti
     //
     // @todo
     //
+  }
+  
+  /**
+   * Begin or resume the transaction.
+   *
+   * @return AblePolecat_ResourceInterface The result of the work, partial or completed.
+   * @throw AblePolecat_Transaction_Exception If cannot be brought to a satisfactory state.
+   */
+  public function start() {
+    
+    //
+    // Check request method.
+    //
+    $method = $this->getRequest()->getMethod();
+    switch ($method) {
+      default:
+        break;
+      case 'GET':
+        //
+        // Check for valid security token.
+        //
+        $SecurityToken = $this->getSecurityToken();
+        if (isset($SecurityToken)) {
+          //
+          // Database is active. Allow parent to handle from here.
+          //
+          return parent::start();
+        }
+        else {
+          //
+          // User is not authenticated. Save transaction in $_SESSION global variable.
+          //
+          $transactionId = $this->getTransactionId();
+          AblePolecat_Mode_Session::setSessionVariable($this->getAgent(), AblePolecat_Host::POLECAT_INSTALL_TRX, $transactionId);
+          AblePolecat_Mode_Session::setSessionVariable($this->getAgent(), AblePolecat_Host::POLECAT_INSTALL_SAVEPT, 'start');
+        }
+        break;
+      case 'POST':
+        $transactionId = AblePolecat_Mode_Session::getSessionVariable($this->getAgent(), AblePolecat_Host::POLECAT_INSTALL_TRX);
+        $savePointId = AblePolecat_Mode_Session::getSessionVariable($this->getAgent(), AblePolecat_Host::POLECAT_INSTALL_SAVEPT);
+        break;
   }
   
   /**
@@ -173,6 +211,31 @@ class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transacti
   }
   
   /********************************************************************************
+   * Implementation of AblePolecat_Transaction_RestrictedInterface.
+   ********************************************************************************/
+  
+  /**
+   * @return boolean TRUE if internal authentication is valid, otherwise FALSE.
+   */
+  public function authenticate() {
+    
+  }
+  
+  /**
+   * @return UUID Id of redirect resource on authentication.
+   */
+  public function getRedirectResourceId() {
+    
+  }
+  
+  /**
+   * @return mixed Whatever was used to authenticate access.
+   */
+  public function getSecurityToken() {
+    return $this->SecurityToken;
+  }
+  
+  /********************************************************************************
    * Helper functions.
    ********************************************************************************/
   
@@ -181,5 +244,7 @@ class SalesforceSoapApi_Transaction_Get_SoqlResult extends AblePolecat_Transacti
    */
   protected function initialize() {
     parent::initialize();
+    $this->WsdlLocater = NULL;
+    $this->SecurityToken = NULL;
   }
 }

@@ -1,8 +1,8 @@
 <?php
 /**
  * @package   Salesforce.com SOAP API module for Able Polecat.
- * @file      AblePolecat-Mod-SalesforceSoapApi/usr/src/Resource/Sobject/Std.php
- * @brief     Encapsulates a generic SOQL result record.
+ * @file      AblePolecat-Mod-SalesforceSoapApi/usr/src/Resource/Sobject/List/Search.php
+ * @brief     Encapsulates response from a SOSL query.
  *
  * @author    Karl Kuhrman
  * @copyright [BDS II License] (https://github.com/kkuhrman/AblePolecat/blob/master/LICENSE.md)
@@ -12,20 +12,20 @@
 if (!defined('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH')) {
   define('ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH', dirname(dirname(__DIR__)));
 }
-require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'Resource', 'Sobject.php')));
+require_once(implode(DIRECTORY_SEPARATOR, array(ABLEPOLECAT_MOD_SALESFORCESOAPAPI_SRC_PATH, 'Resource', 'Sobject', 'List.php')));
 
-interface SalesforceSoapApi_Resource_Sobject_StdInterface extends SalesforceSoapApi_ResourceInterface {
+interface SalesforceSoapApi_Resource_Sobject_List_SearchInterface extends SalesforceSoapApi_Resource_Sobject_ListInterface {
 }
 
-class SalesforceSoapApi_Resource_Sobject_Std
-  extends SalesforceSoapApi_ResourceAbstract
+class SalesforceSoapApi_Resource_Sobject_List_Search
+  extends SalesforceSoapApi_Resource_Sobject_ListAbstract
   implements SalesforceSoapApi_Resource_SobjectInterface {
   
   /**
    * Registry article constants.
    */
-  const UUID = '190b2bee-b62e-11e4-a12d-0050569e00a2';
-  const NAME = 'SalesforceSoapApi_Resource_Sobject_Std';
+  const UUID = '16ca88ed-f997-11e4-b890-0050569e00a2';
+  const NAME = 'SalesforceSoapApi_Resource_Sobject_Search';
   
   /********************************************************************************
    * Implementation of AblePolecat_CacheObjectInterface
@@ -36,10 +36,10 @@ class SalesforceSoapApi_Resource_Sobject_Std
    *
    * @param AblePolecat_AccessControl_SubjectInterface $Subject
    *
-   * @return Instance of SalesforceSoapApi_Resource_Sobject_Std
+   * @return Instance of SalesforceSoapApi_Resource_Sobject_List_Search
    */
   public static function wakeup(AblePolecat_AccessControl_SubjectInterface $Subject = NULL) {
-    $Resource = new SalesforceSoapApi_Resource_Sobject_Std($Subject);
+    $Resource = new SalesforceSoapApi_Resource_Sobject_List_Search($Subject);
     return $Resource;
   }
   

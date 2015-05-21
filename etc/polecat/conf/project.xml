@@ -20,6 +20,14 @@
         <polecat:path>Resource/Sobject/Std.php</polecat:path>
         <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
       </polecat:class>
+      <polecat:class id="16ca88ed-f997-11e4-b890-0050569e00a2" name="SalesforceSoapApi_Resource_Sobject_List_Search">
+        <polecat:path>Resource/Sobject/List/Search.php</polecat:path>
+        <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
+      </polecat:class>
+      <polecat:class id="c396f241-f996-11e4-b890-0050569e00a2" name="SalesforceSoapApi_Resource_Sobject_List_Std">
+        <polecat:path>Resource/Sobject/List/Std.php</polecat:path>
+        <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
+      </polecat:class>
       <polecat:class id="f6967c4c-c7ec-11e4-a12d-0050569e00a2" name="SalesforceSoapApi_Client">
         <polecat:path>Service/Client/Salesforce.php</polecat:path>
         <polecat:classFactoryMethod>wakeup</polecat:classFactoryMethod>
